@@ -1,3 +1,4 @@
+
 void jacobiCPU(float* x_new, const float* A, float* x_current, float* b, const int Nx, const int Ny)
 {
     int i, j;

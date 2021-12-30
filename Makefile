@@ -1,15 +1,29 @@
-CC =  gcc
-#CFLAGS = -O3
+CC =  nvcc
+ARCH=61
+CFLAGS=-O3 -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
+LIBS=-lm
 
-all: jacobi_solver
+SRC_DIR = src
+OBJ_DIR = bin
+INC_DIR = include
 
-jacobi_solver : jacobi_solver.o jacobi_cpu.o utils.o
-	$(CC) $(CFLAGS) -o $@ $+ -lm
+EXEC = jacobi_solver
 
-%.o : %.c utils.h jacobi_cpu.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+OBJS = $(OBJ_DIR)/jacobi_solver.o $(OBJ_DIR)/jacobi_cpu.o $(OBJ_DIR)/jacobi_gpu.o  
+
+$(EXEC) : $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $@
+
+$(OBJ_DIR)/%.o : %.cu
+	$(CC) $(CC_FLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.o : $(SRC_DIR)/%.c include/%.h
+	$(CC) $(CC_FLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.o : $(SRC_DIR)/%.cu $(INC_DIR)/%.cuh
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o jacobi_solver *~
+	rm -f bin/* *.o $(EXE) *~
 
 remake : clean all
