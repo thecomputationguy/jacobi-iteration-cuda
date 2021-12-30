@@ -24,6 +24,57 @@
 //     }
 // }
 
+template <typename T>
+class hostCUDAVariable
+{
+    private:
+        /* data */
+        
+        T* xd_ ;
+        const size_t size_;
+    public:
+        T* x_ ;
+        hostCUDAVariable(const size_t size):size_(size)
+        {
+            x_ = (T*)malloc(size_ * sizeof(T));
+            std::cout<<"\nAllocated Memory for Host."<<std::endl;
+            
+            assert(cudaSuccess == cudaMalloc((void**) &xd_, size_ * sizeof(T)));
+            std::cout<<"\nAllocated Memory for Device."<<std::endl;
+            for(int i=0; i < size_; i++)
+            {
+                x_[i] = i;
+            }
+        };
+
+        void copyToDevice()
+        {
+            assert(cudaSuccess == cudaMemcpy(xd_, x_, size_ * sizeof(T), cudaMemcpyHostToDevice));
+            std::cout<<"\nCopied to Device."<<std::endl;
+        };
+
+        void copyToHost()
+        {
+            assert(cudaSuccess == cudaMemcpy(x_, xd_, size_ * sizeof(T), cudaMemcpyDeviceToHost));
+            std::cout<<"\nCopied to Host."<<std::endl;
+            for(int i=0; i < size_; i++)
+        };
+
+        T*& getDeviceVariable()
+        {
+            return xd_;
+        }
+
+        ~hostCUDAVariable()
+        {
+            cudaFree(xd_);
+            std::cout<<"\nDeallocated Memory for Device."<<std::endl;
+            free(x_);
+            std::cout<<"\nDeallocated Memory for Host."<<std::endl;
+        };
+};
+
+
 __global__
 void jacobiGPUBasic(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)
 {
@@ -89,8 +140,6 @@ void freeHostMemory(float **x_current, float **x_next, float **b, float **A)
 int main(int arc, char* argv[])
 {
     unsigned int resolution = 10000;
-    unsigned int increment = 10000;
-    unsigned int final_resolution = 40000;
     unsigned int iterations = 50;
     clock_t start_time;
     clock_t end_time;
@@ -127,10 +176,10 @@ int main(int arc, char* argv[])
     printf("\n** Starting Jacobi Solver on GPU (Basic) **\n");
     const int resolution_gpu[5] = {10, 100, 1000, 10000, 15000};
     iterations = 1000;
-    std::cout<<"\n trying C++"<<std::endl;
 
     for (int iter = 0; iter < 5; iter++)
     {
+        break;
         const int resolution = resolution_gpu[iter];
         
         float *x_current_device, *x_next_device, *b_device, *A_device;
@@ -157,6 +206,20 @@ int main(int arc, char* argv[])
         freeDeviceMemory(&x_current_device, &x_next_device, &b_device, &A_device);
         freeHostMemory(&x_current, &x_next, &b, &A);        
     }
+
+    hostCUDAVariable<float> variable(5);
+    variable.copyToDevice();
+    variable.copyToHost();
+    hostCUDAVariable<float> x_next(100);
+    hostCUDAVariable<float> x_current(100);
+    hostCUDAVariable<float> A(100 * 100);
+    hostCUDAVariable<float> b(100);
+    auto x_next_device = x_next.getDeviceVariable();
+    auto x_current_device = x_current.getDeviceVariable();
+    auto b_device = b.getDeviceVariable();
+    auto A_device = A.getDeviceVariable();
+    jacobiGPUBasic<<<numBlocks, blockSize>>>(x_next_device, A_device, x_current_device, b_device, 100, 100);
+    std::cout<<"\nGPU Calculation done."<<std::endl;
 
     return 0;
 }
