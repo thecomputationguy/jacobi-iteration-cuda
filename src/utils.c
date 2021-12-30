@@ -1,4 +1,5 @@
 #include<stdlib.h>
+#include "include/utils.h"
 
 typedef struct
 {
