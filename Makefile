@@ -14,7 +14,7 @@ OBJS = $(OBJ_DIR)/jacobi_solver.o $(OBJ_DIR)/jacobi_cpu.o $(OBJ_DIR)/jacobi_gpu.
 $(EXEC) : $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $@
 
-$(OBJ_DIR)/%.o : %.cu
+$(OBJ_DIR)/jacobi_solver.o : jacobi_solver.cu
 	$(CC) $(CC_FLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o : $(SRC_DIR)/%.c include/%.h
