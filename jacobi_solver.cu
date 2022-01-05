@@ -5,80 +5,8 @@
 #include <chrono>
 #include "jacobi_CPU.hpp"
 #include "jacobi_GPU.cuh"
-
-template <typename T>
-class hostCUDAVariable
-{
-    private:
-        /* data */
-        T* x_ ;
-        T* xd_ ;
-        const size_t size_;
-        const bool useGPU_;
-    
-    public:
-       
-        hostCUDAVariable(const size_t size, const bool useGPU) : size_(size), useGPU_(useGPU)
-        {
-            x_ = (T*)malloc(size_ * sizeof(T));
-
-            if(useGPU_)
-            {
-                assert(cudaSuccess == cudaMalloc((void**) &xd_, size_ * sizeof(T)));
-            }
-                
-        }
-
-        void copyToDevice()
-        {
-            assert(cudaSuccess == cudaMemcpy(xd_, x_, size_ * sizeof(T), cudaMemcpyHostToDevice));
-        }
-
-        void copyToHost()
-        {
-            assert(cudaSuccess == cudaMemcpy(x_, xd_, size_ * sizeof(T), cudaMemcpyDeviceToHost));
-        }
-
-        T*& getDeviceVariable()
-        {
-            return xd_;
-        }
-
-        T*& getHostVariable()
-        {
-            return x_;
-        }
-
-        ~hostCUDAVariable()
-        {
-            if(useGPU_) 
-            {
-                cudaFree(xd_);
-            }              
-
-            free(x_);
-        }
-};
-
-template<typename T>
-class Solver
-{
-    protected:
-        hostCUDAVariable<T> A_, b_, x_current_, x_next_;
-        const size_t resolution_;
-
-    public:
-        Solver(const size_t size, const bool useGPU) : A_(size * size, useGPU), b_(size, useGPU), 
-                                                        x_current_(size, useGPU), x_next_(size, useGPU), 
-                                                        resolution_(size)
-        {
-        }
-
-        virtual T*& solve()
-        {
-        }
-};
-
+#include "utils.cuh"
+#include "utils.cu"
 template<typename T>
 class jacobiSolverGPU : public Solver<T>
 {

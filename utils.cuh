@@ -1,3 +1,6 @@
+#ifndef UTILS_CUH
+#define UTILS_CUH
+
 template <typename T>
 class hostCUDAVariable
 {
@@ -16,3 +19,17 @@ class hostCUDAVariable
         T*& getHostVariable();
         ~hostCUDAVariable();
 };
+
+template<typename T>
+class Solver
+{
+    protected:
+        hostCUDAVariable<T> A_, b_, x_current_, x_next_;
+        const size_t resolution_;
+
+    public:
+        Solver(const size_t size, const bool useGPU);
+        virtual T*& solve();
+};
+
+#endif

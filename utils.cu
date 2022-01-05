@@ -2,7 +2,7 @@
 #include <cuda.h>
 #include <assert.h>
 #include <cuda_runtime_api.h>
-#include "utils.hpp"
+#include "utils.cuh"
 
 template <typename T>
 hostCUDAVariable<T>::hostCUDAVariable(const size_t size, const bool useGPU) : size_(size), useGPU_(useGPU)
@@ -49,4 +49,16 @@ hostCUDAVariable<T>::~hostCUDAVariable()
     }              
 
     free(x_);
+}
+
+template<typename T>
+Solver<T>::Solver(const size_t size, const bool useGPU) : A_(size * size, useGPU), b_(size, useGPU), 
+                                                        x_current_(size, useGPU), x_next_(size, useGPU), 
+                                                        resolution_(size)
+{
+}
+
+template<typename T>
+T*& Solver<T>::solve()
+{
 }
