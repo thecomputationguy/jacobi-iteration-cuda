@@ -1,5 +1,5 @@
 #include <cuda.h>
-#include "../include/jacobi_gpu.cuh"
+#include "jacobi_GPU.cuh"
 
 __global__
 void jacobiGPUBasic(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)

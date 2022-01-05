@@ -1,4 +1,4 @@
-#include "../include/jacobi_cpu.h"
+#include "jacobi_CPU.hpp"
 
 void jacobiCPU(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)
 {

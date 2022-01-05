@@ -1,29 +1,19 @@
-CC =  nvcc
-ARCH=61
-CFLAGS=-O3 -gencode arch=compute_$(ARCH),code=sm_$(ARCH)
-LIBS=-lm
+NVCC =  nvcc
+CFLAGS = -O3 -gencode arch=compute_61,code=sm_61
+all : jacobi_solver
 
-SRC_DIR = src
-OBJ_DIR = bin
-INC_DIR = include
+main : jacobi_solver.o jacobi_CPU.o jacobi_GPU.o 
 
-EXEC = jacobi_solver
+jacobi_CPU.o : jacobi_CPU.hpp jacobi_CPU.cpp
+	$(NVCC) $(CFLAGS) -std=c++11 -c jacobi_CPU.cpp
 
-OBJS = $(OBJ_DIR)/jacobi_solver.o $(OBJ_DIR)/jacobi_cpu.o $(OBJ_DIR)/jacobi_gpu.o  
+jacobi_GPU.o : jacobi_GPU.cuh jacobi_GPU.cu
+	$(NVCC) $(CFLAGS) -std=c++11 -c jacobi_GPU.cu
 
-$(EXEC) : $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $@
+jacobi_solver : jacobi_solver.cu jacobi_CPU.o jacobi_GPU.o
+	$(NVCC) $(CFLAGS) -std=c++11 -o jacobi_solver jacobi_solver.cu jacobi_CPU.o jacobi_GPU.o
 
-$(OBJ_DIR)/jacobi_solver.o : jacobi_solver.cu
-	$(CC) $(CC_FLAGS) -c $< -o $@
-
-$(OBJ_DIR)/%.o : $(SRC_DIR)/%.c include/%.h
-	$(CC) $(CC_FLAGS) -c $< -o $@
-
-$(OBJ_DIR)/%.o : $(SRC_DIR)/%.cu $(INC_DIR)/%.cuh
-	$(CC) $(CFLAGS) -c $< -o $@
-
-clean:
-	rm -f bin/* *.o $(EXE) *~
+clean :
+	rm -f *.o *~ jacobi_solver
 
 remake : clean all

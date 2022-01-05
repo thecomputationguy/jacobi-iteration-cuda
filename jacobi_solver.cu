@@ -3,43 +3,9 @@
 #include <assert.h>
 #include <iostream>
 #include <chrono>
-// #include "include/jacobi_cpu.h"
-// #include "include/jacobi_gpu.cuh"
+#include "jacobi_CPU.hpp"
+#include "jacobi_GPU.cuh"
 
-void jacobiCPU(float* x_new, const float* A, float* x_current, float* b, const int Nx, const int Ny)
-{
-    int i, j;
-    float sum;
-
-    for(i = 0; i < Nx; i++)
-    {
-        sum = 0.0;
-        for(j = 0; j < Ny; j++)
-        {
-            if(i != j)
-                sum += A[i * Ny + j] * x_current[j];
-        }
-        x_new[i] = (b[i] - sum) / A[i * Ny + i];
-    }
-}
-
-__global__
-void jacobiGPUBasic(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)
-{
-    float sum = 0.0;
-    int idx = threadIdx.x;
-    int j;
-
-    for(j = 0; j < Ny; j++)
-    {
-        if(idx != j)
-        {
-            sum += A[idx * Ny + j] * x_current[j];
-        }
-        x_new[idx] = (b[idx] - sum) / A[idx * Ny + idx];
-    }
-    __syncthreads();
-}
 template <typename T>
 class hostCUDAVariable
 {
@@ -48,7 +14,7 @@ class hostCUDAVariable
         T* x_ ;
         T* xd_ ;
         const size_t size_;
-        bool useGPU_;
+        const bool useGPU_;
     
     public:
        
