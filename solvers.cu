@@ -1,7 +1,4 @@
-#include <stdlib.h>
 #include <cuda.h>
-#include <assert.h>
-#include <cuda_runtime_api.h>
 #include "jacobi_CPU.hpp"
 #include "jacobi_GPU.cuh"
 #include "solvers.cuh"
