@@ -24,57 +24,6 @@
 //     }
 // }
 
-template <typename T>
-class hostCUDAVariable
-{
-    private:
-        /* data */
-        
-        T* xd_ ;
-        const size_t size_;
-    public:
-        T* x_ ;
-        hostCUDAVariable(const size_t size):size_(size)
-        {
-            x_ = (T*)malloc(size_ * sizeof(T));
-            std::cout<<"\nAllocated Memory for Host."<<std::endl;
-            
-            assert(cudaSuccess == cudaMalloc((void**) &xd_, size_ * sizeof(T)));
-            std::cout<<"\nAllocated Memory for Device."<<std::endl;
-            for(int i=0; i < size_; i++)
-            {
-                x_[i] = i;
-            }
-        };
-
-        void copyToDevice()
-        {
-            assert(cudaSuccess == cudaMemcpy(xd_, x_, size_ * sizeof(T), cudaMemcpyHostToDevice));
-            std::cout<<"\nCopied to Device."<<std::endl;
-        };
-
-        void copyToHost()
-        {
-            assert(cudaSuccess == cudaMemcpy(x_, xd_, size_ * sizeof(T), cudaMemcpyDeviceToHost));
-            std::cout<<"\nCopied to Host."<<std::endl;
-            for(int i=0; i < size_; i++)
-        };
-
-        T*& getDeviceVariable()
-        {
-            return xd_;
-        }
-
-        ~hostCUDAVariable()
-        {
-            cudaFree(xd_);
-            std::cout<<"\nDeallocated Memory for Device."<<std::endl;
-            free(x_);
-            std::cout<<"\nDeallocated Memory for Host."<<std::endl;
-        };
-};
-
-
 __global__
 void jacobiGPUBasic(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)
 {
@@ -90,52 +39,109 @@ void jacobiGPUBasic(float* x_new, float* A, float* x_current, float* b, const in
         }
         x_new[idx] = (b[idx] - sum) / A[idx * Ny + idx];
     }
+    __syncthreads();
 }
-
-void allocateHostMemory(float **x_current, float **x_next, float **b, float **A, int resolution)
+template <typename T>
+class hostCUDAVariable
 {
-    printf("\nAllocating Host Memory...");
-    *x_current = (float*)malloc(resolution * sizeof(float));
-    *x_next = (float*)malloc(resolution * sizeof(float));
-    *b = (float*)malloc(resolution * sizeof(float));
-    *A = (float*)malloc(resolution * resolution * sizeof(float));
-    printf("\nHost Memory Allocated.\n");
-}
+    private:
+        /* data */
+        T* x_ ;
+        T* xd_ ;
+        const size_t size_;
+    
+    public:
+       
+        hostCUDAVariable(const size_t size):size_(size)
+        {
+            x_ = (T*)malloc(size_ * sizeof(T));
+            //std::cout<<"\nAllocated Memory for Host."<<std::endl;
+            
+            assert(cudaSuccess == cudaMalloc((void**) &xd_, size_ * sizeof(T)));
+            //std::cout<<"\nAllocated Memory for Device."<<std::endl;
+        }
 
-void allocateDeviceMemory(float **x_current_device, float **x_next_device, float **b_device, float **A_device, 
-                        int resolution,
-                        float **x_current, float **x_next, float **b, float **A)
+        void copyToDevice()
+        {
+            assert(cudaSuccess == cudaMemcpy(xd_, x_, size_ * sizeof(T), cudaMemcpyHostToDevice));
+            //std::cout<<"\nCopied to Device."<<std::endl;
+        }
+
+        void copyToHost()
+        {
+            assert(cudaSuccess == cudaMemcpy(x_, xd_, size_ * sizeof(T), cudaMemcpyDeviceToHost));
+            //std::cout<<"\nCopied to Host."<<std::endl;
+        }
+
+        T*& getDeviceVariable()
+        {
+            return xd_;
+        }
+
+        T*& getHostVariable()
+        {
+            return x_;
+        }
+
+        ~hostCUDAVariable()
+        {
+            cudaFree(xd_);
+            //std::cout<<"\nDeallocated Memory for Device."<<std::endl;
+            free(x_);
+            //std::cout<<"\nDeallocated Memory for Host."<<std::endl;
+        }
+};
+
+template<typename T>
+class Solver
 {
-    printf("\nAllocating Device Memory...");
-    assert(cudaSuccess == cudaMalloc((void**) x_current_device, resolution * sizeof(float)));
-    assert(cudaSuccess == cudaMalloc((void**) x_next_device, resolution * sizeof(float)));
-    assert(cudaSuccess == cudaMalloc((void**) b_device, resolution * sizeof(float)));
-    assert(cudaSuccess == cudaMalloc((void**) A_device, resolution * resolution * sizeof(float) * sizeof(float)));
-    printf("\nDevice Memory Allocated.\n");
+    protected:
+        hostCUDAVariable<T> A_, b_, x_current_, x_next_;
+        const size_t resolution_;
 
-    printf("\nCopying to Device Memory...");
-    assert(cudaSuccess == cudaMemcpy(*x_current_device, *x_current, resolution * sizeof(float), cudaMemcpyHostToDevice));
-    assert(cudaSuccess == cudaMemcpy(*x_next_device, *x_next, resolution * sizeof(float), cudaMemcpyHostToDevice));
-    assert(cudaSuccess == cudaMemcpy(*b_device, *b, resolution * sizeof(float), cudaMemcpyHostToDevice));
-    assert(cudaSuccess == cudaMemcpy(*A_device, *A, resolution * resolution * sizeof(float), cudaMemcpyHostToDevice));
-    printf("\nCopied to Device.");
-}
+    public:
+        Solver(const size_t size) : A_(size * size), b_(size), x_current_(size), x_next_(size), resolution_(size)
+        {
+            std::cout<<"\nConstructor called for Solver"<<std::endl;
+        }
 
-void freeDeviceMemory(float **x_current_device, float **x_next_device, float **b_device, float **A_device)
+        virtual T*& solve()
+        {
+
+        }
+};
+
+template<typename T>
+class jacobiSolver : public Solver<T>
 {
-    assert(cudaSuccess == cudaFree(*A_device));
-    assert(cudaSuccess == cudaFree(*x_current_device));
-    assert(cudaSuccess == cudaFree(*x_next_device));
-    assert(cudaSuccess == cudaFree(*b_device));
-}
+    private:
+        size_t resolution_;
 
-void freeHostMemory(float **x_current, float **x_next, float **b, float **A)
-{
-    free(*A);
-    free(*x_current);
-    free(*x_next);
-    free(*b);
-}
+    public:
+        jacobiSolver(size_t resolution) : Solver<T>(resolution)
+        {   
+            jacobiSolver::resolution_ = resolution;
+            std::cout<<"\nConstructor called for Jacobi"<<std::endl;
+        }
+
+        T*& solve()
+        {
+            auto x_next_device = Solver<T>::x_next_.getDeviceVariable();
+            auto x_current_device = Solver<T>::x_current_.getDeviceVariable();
+            auto b_device = Solver<T>::b_.getDeviceVariable();
+            auto A_device = Solver<T>::A_.getDeviceVariable();
+            const int numBlocks = 1;
+            const int blockSize = 256;
+            const size_t resolution = Solver<T>::resolution_;
+
+            jacobiGPUBasic<<<numBlocks, blockSize>>>(x_next_device, A_device, x_current_device, b_device, resolution, resolution);
+            std::cout<<"\nGPU Calculation done."<<std::endl;
+            Solver<T>::x_current_.copyToHost();
+
+            return Solver<T>::x_current_.getHostVariable();
+        }
+};
+
 
 int main(int arc, char* argv[])
 {
@@ -144,82 +150,18 @@ int main(int arc, char* argv[])
     clock_t start_time;
     clock_t end_time;
     double elapsed_time;
-    int blockSize = ceil(resolution / 768);
-    int numBlocks = 1;
 
-    printf("\n** Starting Jacobi Solver on CPU **\n");
-    // while(resolution <= final_resolution)
-    // {
-    //     float* x_current = (float*)malloc(resolution * sizeof(float));
-    //     float* x_next = (float*)malloc(resolution * sizeof(float));
-    //     float* b = (float*)malloc(resolution * sizeof(float));
-    //     float* A = (float*)malloc(resolution * resolution * sizeof(float));
-
-    //     start_time = clock();        
-    //     jacobiCPU(x_next, A, x_current, b, resolution, resolution);
-    //     end_time = clock();
-    //     elapsed_time = (end_time - start_time) / CLOCKS_PER_SEC;
-
-    //     printf("\nResolution       : %d", resolution);
-    //     printf("\nIterations       : %d", iterations);
-    //     printf("\nTime Elapsed (s) : %.2lf", elapsed_time / iterations);
-    //     printf("\n");
-
-    //     free(x_current);
-    //     free(x_next);
-    //     free(b);
-    //     free(A);
-
-    //     resolution += increment;
-    // }
+    std::cout<<"\n** Starting Jacobi Solver on CPU **\n"<<std::endl;
 
     printf("\n** Starting Jacobi Solver on GPU (Basic) **\n");
     const int resolution_gpu[5] = {10, 100, 1000, 10000, 15000};
     iterations = 1000;
+    resolution = 5;
 
-    for (int iter = 0; iter < 5; iter++)
-    {
-        break;
-        const int resolution = resolution_gpu[iter];
-        
-        float *x_current_device, *x_next_device, *b_device, *A_device;
-        float *x_current, *x_next, *b, *A;
-        allocateHostMemory(&x_current, &x_next, &b, &A, resolution);
-
-        allocateDeviceMemory(&x_current_device, &x_next_device, &b_device, &A_device,
-                            resolution,
-                            &x_current, &x_next, &b, &A);
-
-        start_time = clock();
-        for(int i = 0; i < iterations; i++)
-        {
-            jacobiGPUBasic<<<numBlocks, blockSize>>>(x_next_device, A_device, x_current_device, b_device, resolution, resolution);
-        }
-        end_time = clock();
-        elapsed_time = (end_time - start_time) ;
-
-        printf("\nResolution       : %d", resolution);
-        printf("\nIterations       : %d", iterations);
-        printf("\nTime Elapsed (s) : %lf", elapsed_time);
-        printf("\n");
-
-        freeDeviceMemory(&x_current_device, &x_next_device, &b_device, &A_device);
-        freeHostMemory(&x_current, &x_next, &b, &A);        
-    }
-
-    hostCUDAVariable<float> variable(5);
-    variable.copyToDevice();
-    variable.copyToHost();
-    hostCUDAVariable<float> x_next(100);
-    hostCUDAVariable<float> x_current(100);
-    hostCUDAVariable<float> A(100 * 100);
-    hostCUDAVariable<float> b(100);
-    auto x_next_device = x_next.getDeviceVariable();
-    auto x_current_device = x_current.getDeviceVariable();
-    auto b_device = b.getDeviceVariable();
-    auto A_device = A.getDeviceVariable();
-    jacobiGPUBasic<<<numBlocks, blockSize>>>(x_next_device, A_device, x_current_device, b_device, 100, 100);
-    std::cout<<"\nGPU Calculation done."<<std::endl;
+    jacobiSolver<float> jacobi(resolution);
+    auto result = jacobi.solve();
+    for(int i=0; i < resolution; i++)
+        std::cout<<result[i]<<std::endl;
 
     return 0;
 }
