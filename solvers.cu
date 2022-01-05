@@ -7,8 +7,8 @@
 #include "solvers.cuh"
 
 template<typename T>
-jacobiSolverGPU<T>::jacobiSolverGPU(size_t resolution, const bool useGPU) : Solver<T>(resolution, useGPU)
-{   
+jacobiSolverGPU<T>::jacobiSolverGPU(size_t resolution, const bool useGPU, const int numBlocks, const int blockSize) : Solver<T>(resolution, useGPU), numBlocks_(numBlocks), blockSize_(blockSize)
+{ 
 }
 
 template<typename T>
@@ -18,11 +18,9 @@ T*& jacobiSolverGPU<T>::solve()
     auto x_current_device = Solver<T>::x_current_.getDeviceVariable();
     auto b_device = Solver<T>::b_.getDeviceVariable();
     auto A_device = Solver<T>::A_.getDeviceVariable();
-    const int numBlocks = 1;
-    const int blockSize = 256;
     const size_t resolution = Solver<T>::resolution_;
 
-    jacobiGPUBasic<<<numBlocks, blockSize>>>(x_next_device, A_device, x_current_device, b_device, resolution, resolution);
+    jacobiGPUBasic<<<numBlocks_, blockSize_>>>(x_next_device, A_device, x_current_device, b_device, resolution, resolution);
     Solver<T>::x_current_.copyToHost();
 
     return Solver<T>::x_current_.getHostVariable();

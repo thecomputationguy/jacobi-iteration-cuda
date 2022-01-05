@@ -7,8 +7,10 @@
 template<typename T>
 class jacobiSolverGPU : public Solver<T>
 {
+    private:
+        const int numBlocks_, blockSize_;
     public:
-        jacobiSolverGPU(size_t resolution, const bool useGPU);
+        jacobiSolverGPU(size_t resolution, const bool useGPU, const int numBlocks, const int blockSize);
         T*& solve();
 };
 

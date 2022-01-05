@@ -14,6 +14,8 @@ int main(int arc, char* argv[])
     const int iterations = 1000;
     const int num_resolutions = 5;
     bool useGPU;
+    int numBlocks = 1;
+    int blockSize = 256;
 
     for(int i = 0; i < num_resolutions; i++)
     {
@@ -21,7 +23,7 @@ int main(int arc, char* argv[])
 
         // GPU code runs in this block
         useGPU = true;
-        jacobiSolverGPU<float> jacobiGPU(resolution, useGPU);
+        jacobiSolverGPU<float> jacobiGPU(resolution, useGPU, numBlocks, blockSize);
         std::cout<<"\nResolution : "<<resolution<<std::endl;
         auto start = std::chrono::high_resolution_clock::now();
         for(int j = 0; j < iterations; j++)
