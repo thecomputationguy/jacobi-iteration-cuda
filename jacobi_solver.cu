@@ -1,28 +1,27 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <cuda.h>
 #include <assert.h>
 #include <iostream>
+#include <chrono>
 // #include "include/jacobi_cpu.h"
 // #include "include/jacobi_gpu.cuh"
 
-// void jacobiCPU(float* x_new, const float* A, float* x_current, float* b, const int Nx, const int Ny, const int iterations)
-// {
-//     int i, j;
-//     float sum;
+void jacobiCPU(float* x_new, const float* A, float* x_current, float* b, const int Nx, const int Ny)
+{
+    int i, j;
+    float sum;
 
-//     for(i = 0; i < Nx; i++)
-//     {
-//         sum = 0.0;
-//         for(j = 0; j < Ny; j++)
-//         {
-//             if(i != j)
-//                 sum += A[i * Ny + j] * x_current[j];
-//         }
-//         x_new[i] = (b[i] - sum) / A[i * Ny + i];
-//     }
-// }
+    for(i = 0; i < Nx; i++)
+    {
+        sum = 0.0;
+        for(j = 0; j < Ny; j++)
+        {
+            if(i != j)
+                sum += A[i * Ny + j] * x_current[j];
+        }
+        x_new[i] = (b[i] - sum) / A[i * Ny + i];
+    }
+}
 
 __global__
 void jacobiGPUBasic(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)
@@ -49,28 +48,29 @@ class hostCUDAVariable
         T* x_ ;
         T* xd_ ;
         const size_t size_;
+        bool useGPU_;
     
     public:
        
-        hostCUDAVariable(const size_t size):size_(size)
+        hostCUDAVariable(const size_t size, const bool useGPU) : size_(size), useGPU_(useGPU)
         {
             x_ = (T*)malloc(size_ * sizeof(T));
-            //std::cout<<"\nAllocated Memory for Host."<<std::endl;
-            
-            assert(cudaSuccess == cudaMalloc((void**) &xd_, size_ * sizeof(T)));
-            //std::cout<<"\nAllocated Memory for Device."<<std::endl;
+
+            if(useGPU_)
+            {
+                assert(cudaSuccess == cudaMalloc((void**) &xd_, size_ * sizeof(T)));
+            }
+                
         }
 
         void copyToDevice()
         {
             assert(cudaSuccess == cudaMemcpy(xd_, x_, size_ * sizeof(T), cudaMemcpyHostToDevice));
-            //std::cout<<"\nCopied to Device."<<std::endl;
         }
 
         void copyToHost()
         {
             assert(cudaSuccess == cudaMemcpy(x_, xd_, size_ * sizeof(T), cudaMemcpyDeviceToHost));
-            //std::cout<<"\nCopied to Host."<<std::endl;
         }
 
         T*& getDeviceVariable()
@@ -85,10 +85,12 @@ class hostCUDAVariable
 
         ~hostCUDAVariable()
         {
-            cudaFree(xd_);
-            //std::cout<<"\nDeallocated Memory for Device."<<std::endl;
+            if(useGPU_) 
+            {
+                cudaFree(xd_);
+            }              
+
             free(x_);
-            //std::cout<<"\nDeallocated Memory for Host."<<std::endl;
         }
 };
 
@@ -100,28 +102,23 @@ class Solver
         const size_t resolution_;
 
     public:
-        Solver(const size_t size) : A_(size * size), b_(size), x_current_(size), x_next_(size), resolution_(size)
+        Solver(const size_t size, const bool useGPU) : A_(size * size, useGPU), b_(size, useGPU), 
+                                                        x_current_(size, useGPU), x_next_(size, useGPU), 
+                                                        resolution_(size)
         {
-            std::cout<<"\nConstructor called for Solver"<<std::endl;
         }
 
         virtual T*& solve()
         {
-
         }
 };
 
 template<typename T>
-class jacobiSolver : public Solver<T>
+class jacobiSolverGPU : public Solver<T>
 {
-    private:
-        size_t resolution_;
-
     public:
-        jacobiSolver(size_t resolution) : Solver<T>(resolution)
+        jacobiSolverGPU(size_t resolution, const bool useGPU) : Solver<T>(resolution, useGPU)
         {   
-            jacobiSolver::resolution_ = resolution;
-            std::cout<<"\nConstructor called for Jacobi"<<std::endl;
         }
 
         T*& solve()
@@ -135,8 +132,29 @@ class jacobiSolver : public Solver<T>
             const size_t resolution = Solver<T>::resolution_;
 
             jacobiGPUBasic<<<numBlocks, blockSize>>>(x_next_device, A_device, x_current_device, b_device, resolution, resolution);
-            std::cout<<"\nGPU Calculation done."<<std::endl;
             Solver<T>::x_current_.copyToHost();
+
+            return Solver<T>::x_current_.getHostVariable();
+        }
+};
+
+template<typename T>
+class jacobiSolverCPU : public Solver<T>
+{
+    public:
+        jacobiSolverCPU(size_t resolution, const bool useGPU) : Solver<T>(resolution, useGPU)
+        {   
+        }
+
+        T*& solve()
+        {
+            auto x_next = Solver<T>::x_next_.getHostVariable();
+            auto x_current = Solver<T>::x_current_.getHostVariable();
+            auto b = Solver<T>::b_.getHostVariable();
+            auto A = Solver<T>::A_.getHostVariable();
+            const size_t resolution = Solver<T>::resolution_;
+
+            jacobiCPU(x_next, A, x_current, b, resolution, resolution);
 
             return Solver<T>::x_current_.getHostVariable();
         }
@@ -145,23 +163,46 @@ class jacobiSolver : public Solver<T>
 
 int main(int arc, char* argv[])
 {
-    unsigned int resolution = 10000;
-    unsigned int iterations = 50;
-    clock_t start_time;
-    clock_t end_time;
-    double elapsed_time;
+    std::cout<<"\n** Starting Jacobi Solver **\n";
+    const int resolution_gpu[5] = {10, 100, 1000, 2000, 3000};
+    const int iterations = 1000;
+    const int num_resolutions = 5;
+    bool useGPU;
 
-    std::cout<<"\n** Starting Jacobi Solver on CPU **\n"<<std::endl;
+    for(int i = 0; i < num_resolutions; i++)
+    {
+        const int resolution = resolution_gpu[i];
 
-    printf("\n** Starting Jacobi Solver on GPU (Basic) **\n");
-    const int resolution_gpu[5] = {10, 100, 1000, 10000, 15000};
-    iterations = 1000;
-    resolution = 5;
+        useGPU = true;
+        jacobiSolverGPU<float> jacobiGPU(resolution, useGPU);
+        std::cout<<"\nResolution : "<<resolution<<std::endl;
 
-    jacobiSolver<float> jacobi(resolution);
-    auto result = jacobi.solve();
-    for(int i=0; i < resolution; i++)
-        std::cout<<result[i]<<std::endl;
+        //std::cout<<"\nGPU calculation started."<<std::endl;
+        auto start = std::chrono::high_resolution_clock::now();
+        for(int j = 0; j < iterations; j++)
+        {
+            auto result = jacobiGPU.solve();
+        }
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto elapsed_gpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start) / iterations;
+        //std::cout<<"GPU calculation done."<<std::endl;
+
+        //std::cout<<"\nCPU calculation started."<<std::endl;
+        useGPU = false;
+        jacobiSolverCPU<float> jacobiCPU(resolution, useGPU);
+        start = std::chrono::high_resolution_clock::now();
+        for(int j = 0; j < iterations; j++)
+        {
+            auto result = jacobiCPU.solve();
+        }
+        stop = std::chrono::high_resolution_clock::now();
+        auto elapsed_cpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start) / iterations;
+        //std::cout<<"CPU calculation done."<<std::endl;
+
+        
+        std::cout<<"\tCPU : "<<elapsed_cpu.count()<<" microseconds"<<std::endl;
+        std::cout<<"\tGPU : "<<elapsed_gpu.count()<<" microseconds"<<std::endl;
+    }
 
     return 0;
 }
