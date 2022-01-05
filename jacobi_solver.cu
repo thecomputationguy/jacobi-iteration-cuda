@@ -7,6 +7,7 @@
 #include "jacobi_GPU.cuh"
 #include "utils.cuh"
 #include "utils.cu"
+
 template<typename T>
 class jacobiSolverGPU : public Solver<T>
 {
