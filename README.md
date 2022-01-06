@@ -2,12 +2,6 @@
 
 GPU version of the Jacobi Iteration implemented using both CUDA C++ and PyCUDA
 
-To Run the CUDA C++ solvers:
+For the CUDA C++ solvers, simply run the 'run_solvers.sh' script and everything is done automatically. However, one needs to assign appropriate permissions to the shell script first. To do that, in a linux terminal, run 'chmod 777 run_solver.sh'. Then run './run_solvers.sh'. Once the runs are finished, a comparison graph is generated for the runtimes and is saved as 'plot_jacobi.png' and the runtimes are stored as a csv file in 'measurements.csv'.
 
-    1. In a linux terminal, run 'make clean'.
-
-    2. Then run 'make'.
-    
-    3. Then run './solver_run'.
-
-To Run the PyCuda solver, run the notebook cells sequentially.
+To Run the PyCuda version, run the notebook cells in 'jacobiPyCuda.ipynb' sequentially.
