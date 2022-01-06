@@ -18,6 +18,6 @@ solver_run : main.cu solvers.o utils.o jacobi_CPU.o jacobi_GPU.o
 	$(NVCC) $(CFLAGS) -o solver_run main.cu solvers.o utils.o jacobi_CPU.o jacobi_GPU.o
 
 clean :
-	rm -f *.o *~ solver_run
+	rm -f *.o *~ solver_run *.csv *.png
 
 remake : clean all
