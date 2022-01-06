@@ -16,7 +16,7 @@ printf "\nDone.\n"
 
 printf "\nPlotting and saving graph.\n"
 
-python3 ploy.py
+python3 plot.py
 
 printf "\nDone.\n"
 
