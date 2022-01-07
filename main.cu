@@ -53,5 +53,6 @@ int main(int arc, char* argv[])
         out<<resolution<<","<<elapsed_cpu.count()<<","<<elapsed_gpu.count()<<"\n";
     }
 
+    out.close();
     return 0;
 }
