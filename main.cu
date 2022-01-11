@@ -14,7 +14,7 @@ int main(int arc, char* argv[])
     std::cout<<"\n** Starting Jacobi Solver **\n";
     const int num_resolutions = 8;
     const int resolution_gpu[num_resolutions] = {100, 200, 500, 1000, 2000, 3000, 5000, 10000};
-    const int iterations = 50;    
+    const int iterations = 500;    
     bool useGPU;
     int numBlocks = 1;
     int blockSize = 256;

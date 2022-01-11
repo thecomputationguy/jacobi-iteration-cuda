@@ -1,5 +1,5 @@
-NVCC =  nvcc
-CFLAGS = -O3 -gencode arch=compute_61,code=sm_61
+NVCC =  nvcc 
+CFLAGS = -O3 -gencode arch=compute_53,code=sm_53 -lgomp
 all : solver_run
 
 jacobi_CPU.o : jacobi_CPU.hpp jacobi_CPU.cpp

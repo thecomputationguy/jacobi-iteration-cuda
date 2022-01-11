@@ -1,10 +1,13 @@
 #include "jacobi_CPU.hpp"
+#include <omp.h>
 
 void jacobiCPU(float* x_new, float* A, float* x_current, float* b, const int Nx, const int Ny)
 {
     int i, j;
     float sum;
+    const int THREADS = 4;
 
+    #pragma omp parallel for num_threads(THREADS) private(i,j)
     for(i = 0; i < Nx; i++)
     {
         sum = 0;
