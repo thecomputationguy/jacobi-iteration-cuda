@@ -20,7 +20,7 @@ int main(int arc, char* argv[])
     int blockSize = 256;
 
     std::ofstream out("measurements.csv");
-    out<<"Resolution,CPU,GPU\n";
+    out<<"Resolution,CPU,GPU,GPU-Speedup\n";
     for(int i = 0; i < num_resolutions; i++)
     {
         const int resolution = resolution_gpu[i];
@@ -47,10 +47,12 @@ int main(int arc, char* argv[])
         }
         stop = std::chrono::high_resolution_clock::now();
         auto elapsed_cpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start) / iterations;
+        auto speedup = elapsed_cpu.count() / elapsed_gpu.count();
         
         std::cout<<"\tCPU : "<<elapsed_cpu.count()<<" microseconds"<<std::endl;
         std::cout<<"\tGPU : "<<elapsed_gpu.count()<<" microseconds"<<std::endl;
-        out<<resolution<<","<<elapsed_cpu.count()<<","<<elapsed_gpu.count()<<"\n";
+        std::cout<<"\tSpeedup (GPU) : "<<speedup<<std::endl;
+        out<<resolution<<","<<elapsed_cpu.count()<<","<<elapsed_gpu.count()<<","<<speedup<<"\n";
     }
 
     out.close();
