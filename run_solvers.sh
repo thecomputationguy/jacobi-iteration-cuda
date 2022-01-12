@@ -8,7 +8,7 @@ printf "\nCompiling program...\n"
 make
 printf "\nDone.\n"
 
-./solver_run
+./solver_run.out
 
 printf "\nPlotting and saving graph.\n"
 python3 plot.py
