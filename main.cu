@@ -12,8 +12,8 @@
 int main(int arc, char* argv[])
 {
     std::cout<<"\n** Starting Jacobi Solver **\n";
-    const int num_resolutions = 8;
-    const int resolution_gpu[num_resolutions] = {100, 200, 500, 1000, 2000, 3000, 5000, 10000};
+    const int num_resolutions = 10;
+    const int resolution_gpu[num_resolutions] = {100, 200, 500, 1000, 2000, 3000, 5000, 10000, 15000, 20000};
     const int iterations = 500;    
     bool useGPU;
     int numBlocks = 1;
@@ -47,7 +47,7 @@ int main(int arc, char* argv[])
         }
         stop = std::chrono::high_resolution_clock::now();
         auto elapsed_cpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start) / iterations;
-        auto speedup = elapsed_cpu.count() / elapsed_gpu.count();
+        float speedup = elapsed_cpu.count() / elapsed_gpu.count();
         
         std::cout<<"\tCPU : "<<elapsed_cpu.count()<<" microseconds"<<std::endl;
         std::cout<<"\tGPU : "<<elapsed_gpu.count()<<" microseconds"<<std::endl;
