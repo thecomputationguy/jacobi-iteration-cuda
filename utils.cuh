@@ -37,6 +37,6 @@ class Solver
         virtual T*& solve();
 };
 
-static std::vector<int> read_file();
+inline std::vector<int> read_file();
 
 #endif
