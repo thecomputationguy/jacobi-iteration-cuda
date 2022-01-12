@@ -18,6 +18,8 @@ int main(int arc, char* argv[])
     bool useGPU;
     int numBlocks = 1;
     int blockSize = 256;
+    std::chrono::steady_clock::time_point start; // start timer
+    std::chrono::steady_clock::time_point stop; // stop timer
 
     std::ofstream out("measurements.csv");
     out<<"Resolution,CPU,GPU,GPU-Speedup\n";
@@ -29,30 +31,30 @@ int main(int arc, char* argv[])
         useGPU = true;
         jacobiSolverGPU<float> jacobiGPU(resolution, useGPU, numBlocks, blockSize);
         std::cout<<"\nResolution : "<<resolution<<std::endl;
-        auto start = std::chrono::high_resolution_clock::now();
+        start = std::chrono::steady_clock::now();
         for(int j = 0; j < iterations; j++)
         {
             auto result = jacobiGPU.solve();
         }
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto elapsed_gpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start) / iterations;
+        stop = std::chrono::steady_clock::now();
+        auto elapsed_gpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() / iterations;
 
         // CPU code runs in this block
         useGPU = false;
         jacobiSolverCPU<float> jacobiCPU(resolution, useGPU);
-        start = std::chrono::high_resolution_clock::now();
+        start = std::chrono::steady_clock::now();
         for(int j = 0; j < iterations; j++)
         {
             auto result = jacobiCPU.solve();
         }
-        stop = std::chrono::high_resolution_clock::now();
-        auto elapsed_cpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start) / iterations;
-        float speedup = elapsed_cpu.count() / elapsed_gpu.count();
+        stop = std::chrono::steady_clock::now();
+        auto elapsed_cpu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() / iterations;
+        float speedup = elapsed_cpu / elapsed_gpu;
         
-        std::cout<<"\tCPU : "<<elapsed_cpu.count()<<" microseconds"<<std::endl;
-        std::cout<<"\tGPU : "<<elapsed_gpu.count()<<" microseconds"<<std::endl;
+        std::cout<<"\tCPU : "<<elapsed_cpu<<" microseconds"<<std::endl;
+        std::cout<<"\tGPU : "<<elapsed_gpu<<" microseconds"<<std::endl;
         std::cout<<"\tSpeedup (GPU) : "<<speedup<<std::endl;
-        out<<resolution<<","<<elapsed_cpu.count()<<","<<elapsed_gpu.count()<<","<<speedup<<"\n";
+        out<<resolution<<","<<elapsed_cpu<<","<<elapsed_gpu<<","<<speedup<<"\n";
     }
 
     out.close();
