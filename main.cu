@@ -1,6 +1,4 @@
-#include <stdlib.h>
 #include <cuda.h>
-#include <assert.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -12,8 +10,7 @@
 int main(int arc, char* argv[])
 {
     std::cout<<"\n** Starting Jacobi Solver **\n";
-    const int num_resolutions = 10;
-    const int resolution_gpu[num_resolutions] = {100, 200, 500, 1000, 2000, 3000, 5000, 10000, 15000, 20000};
+    std::vector<int> resolutions = read_file();
     const int iterations = 500;    
     bool useGPU;
     int numBlocks = 1;
@@ -23,9 +20,9 @@ int main(int arc, char* argv[])
 
     std::ofstream out("measurements.csv");
     out<<"Resolution,CPU,GPU,GPU-Speedup\n";
-    for(int i = 0; i < num_resolutions; i++)
+    for(int i = 0; i < resolutions.size(); i++)
     {
-        const int resolution = resolution_gpu[i];
+        const int resolution = resolutions[i];
 
         // GPU code runs in this block
         useGPU = true;

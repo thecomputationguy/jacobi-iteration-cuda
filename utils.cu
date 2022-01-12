@@ -1,7 +1,15 @@
+#ifndef UTILS_CU
+#define UTILS_CU
+
 #include <stdlib.h>
 #include <cuda.h>
 #include <assert.h>
 #include <cuda_runtime_api.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
 #include "utils.cuh"
 
 /*
@@ -99,3 +107,27 @@ T*& Solver<T>::solve()
         Pure Virtual Function : To be implemented in derived classes.
     */
 }
+
+std::vector<int> read_file()
+{
+    /*
+        Method to read resolutions.
+    */
+
+    std::string filename = "resolutions.txt";
+    std::vector<int> resolutions;
+    std::string size;
+    std::fstream file(filename, std::ios::in);
+
+    if(file.is_open())
+    {
+        while(std::getline(file, size))
+        {
+            resolutions.push_back(stoi(size));
+        }
+    }
+
+    return resolutions;
+}
+
+#endif

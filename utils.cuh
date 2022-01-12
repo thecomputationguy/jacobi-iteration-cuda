@@ -1,6 +1,11 @@
 #ifndef UTILS_CUH
 #define UTILS_CUH
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
 template <typename T>
 class hostCUDAVariable
 {
@@ -31,5 +36,7 @@ class Solver
         Solver(const size_t size, const bool useGPU);
         virtual T*& solve();
 };
+
+static std::vector<int> read_file();
 
 #endif
