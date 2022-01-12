@@ -1,11 +1,7 @@
 #ifndef UTILS_CUH
 #define UTILS_CUH
 
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <vector>
-#include <sstream>
 template <typename T>
 class hostCUDAVariable
 {
